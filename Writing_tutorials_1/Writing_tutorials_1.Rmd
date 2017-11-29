@@ -61,13 +61,15 @@ Multiple-choice questions can be about anything at all. Often, in the context of
 
 How many of the workers had a heart attack during the one-year period starting in 1949? Here's a command to do the counting:
 
-```{r}
+```{r echo = TRUE}
 statPREP::counts( ~ event, data = Bus_workers)
 ```
 
 <!-- 
 The next R chunk contains the commands to generate the multiple-choice question.
 -->
+
+
 
 ```{r Q1}
 question("Based on this set of counts, what *proportion* of bus workers had a heart attack in the one-year interval?",
