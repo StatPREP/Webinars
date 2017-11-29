@@ -1,0 +1,61 @@
+---
+title: "Writing Interactive Tutorials"
+output: html_document
+runtime: shiny_prerendered
+---
+
+```{r setup, include=FALSE}
+library(shiny)
+library(mdsint)
+library(tidyverse)
+library(ggformula)
+library(mosaicModel)
+```
+
+
+```{r echo = FALSE}
+sliderInput("age", "Age range:", min = 35, max = 64, value = c(35,64))
+checkboxInput("bygroups", "Show drivers vs conductors", value = FALSE)
+checkboxInput("logistic", "Use logistic regression", value = FALSE)
+plotOutput("riskplot")
+```
+
+<!-- Then there is the logic that connects the inputs and the outputs, doing whatever computations are needed. Here, the basic logic is to show a linear trend of risk of heart attack vs age. Such chunks always have a 'context = "server"' statement. -->
+
+```{r context = "server"}
+get_formula <- reactive({
+    if (input$bygroups) { event == "attack" ~ age + job }
+    else { event == "attack" ~ age }
+})
+get_data <- reactive({
+  Bus_workers[(Bus_workers$age >= input$age[[1]]) & 
+                  (Bus_workers$age <= input$age[[2]]), ]
+})
+get_model <- reactive({
+  f <- get_formula()
+  This_data <- get_data()
+  
+  if (input$logistic)
+    glm(f, data = This_data, family = binomial)
+  else
+    lm(f, data = This_data)
+})
+get_baseline_curve <- reactive({
+  f <- get_formula()
+  
+  mod <- 
+    if (input$logistic)
+      glm(f, data = Bus_workers, family = binomial)
+    else
+      lm(f, data = Bus_workers)
+  mod_eval(mod, age = 35:64)
+})
+output$riskplot <- renderPlot({
+  mod <- get_model()
+  curve <- get_baseline_curve()
+  This_data <- get_data()
+  mod_plot(mod, interval = "confidence", data = This_data) %>% 
+    gf_line(data = curve, model_output ~ age, alpha = 0.5)  %>%
+    gf_lims(x = c(35,65), y = c(-0.005, .025)) 
+})
+```

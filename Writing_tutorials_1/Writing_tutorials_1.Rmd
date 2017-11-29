@@ -1,0 +1,194 @@
+---
+title: "Writing Interactive Tutorials"
+output: learnr::tutorial
+runtime: shiny_prerendered
+---
+
+```{r setup, include=FALSE}
+library(learnr)
+library(shiny)
+library(mdsint)
+library(ggformula)
+library(mosaic)
+library(mosaicModel)
+knitr::opts_chunk$set(echo = FALSE)
+```
+
+## Introduction 
+
+This document is a tutorial about writing interactive tutorials using the RStudio `learnr` system. You are looking at this document in either of two different ways:
+
+1. As a plain-text file containing the programming elements that go into a tutorial, or
+2. Served up as a rendered tutorial with interactive components. This is what you are looking at if you see a nicely formatted document with headers, a table of contents, etc.
+
+Ordinarily, a student works with a tutorial in form (2). But for this tutorial you're going to be changing the programming elements in the plain-text file, then *compiling* them to interactive HTML.
+
+<!-- 
+Because this is a tutorial about writing tutorials, often, it will be necessary to comment on the contents of the tutorial. Such comments, like this one, will be written in a special format, like this one is. 
+-->
+
+## What goes in a tutorial?
+
+Tutorials can contain **static narrative** of any sort; anything that you might include in any Rmd document: paragraphs, bullet lists, images, equations, R commands, output from R commands (including graphics), and so on. This is called "static narative" because the student can read it but not otherwise interact with it or change it.
+
+In addition to static narrative, tutorials often contain three forms of interactive content:
+
+1. **Questions**, in which the student is able to select an answer.
+2. **Exercises**, in which the student writes or modifies R commands in a "command window".
+3. **Shiny apps**, which provide interactivity via a graphical-user-interface.
+
+## Narrative
+
+<!-- 
+The examples in this tutorial are based in a particular dataset. Here is some narrative describing the data.
+-->
+
+These days it seems obvious that moderate exercise is good for your health. For instance, a standard recommendation is that everyone get at least 150 minutes of exercise per week. 
+
+The benefits of exercise have not always been recognized. One of the first studies to explore the relationship between physical activity and health was a study by epidemiologist [Jerry Morris](https://en.wikipedia.org/wiki/Jerry_Morris) in London in the late 1940s and 1950s.
+
+Morris examined health records on about 25,000 London transport workers -- bus drivers and conductors. He was looking in particular to explain the incidence of coronary artery disease. 
+
+Coronary artery disease affects the blood vessels that supply the heart with oxygen and nutrition. The coronary arteries can become restricted or even completely blocked, reducing oxygen flow and potentially killing heart tissue. The disease is chronic, meaning that it exists, potentially unnoticed, in the background over an extended period of time. But the manifestation of the disease can be very sudden, in the form of a heart attack. In the 1950s, fatality from heart attacks was very high. 
+
+The data table `Bus_workers` contains the ages and job types of individual London bus workers in 1949. It also reports whether the individual had a heart attack during a one-year interval starting in 1949, and follow-up over three years after the attack to track whether the victim died.
+
+## A multiple-choice question
+
+<!-- 
+Multiple-choice questions can be about anything at all. Often, in the context of statistics, they will be based on some narrative presentation about data, as in this example.
+-->
+
+How many of the workers had a heart attack during the one-year period starting in 1949? Here's a command to do the counting:
+
+```{r}
+statPREP::counts( ~ event, data = Bus_workers)
+```
+
+<!-- 
+The next R chunk contains the commands to generate the multiple-choice question.
+-->
+
+```{r Q1}
+question("Based on this set of counts, what *proportion* of bus workers had a heart attack in the one-year interval?",
+    answer("About one in ten, that is, 10% per year"),
+    answer("About one in one-hundred, that is, 1% per year"),
+    answer("About one in two-hundred fifty, that is, 0.004% per year", correct = TRUE),
+    answer("About one in five-hundred, that is, 0.002% per year")
+  )
+```
+
+<!-- 
+The chunk containing a question *must* be given a unique name. The name is in the position following the `{r ____}` in the chunk opening.
+
+The question itself consists of a call to the function `question()` with several arguments: 
+    - a markdown character string with the question prompt. 
+    - one or more calls to the `answer()` function, each of which contains:
+        - a markdown character string with the proposed answer
+        - optionally, a `TRUE/FALSE` value for `correct=`. Presumably, there will be one or more answers in each question that are given `correct = TRUE`.
+    - Additional arguments are available:
+        - `caption`, an argument to `question()` that sets the caption of the question.
+        - `allow_retry`. An argument to `question()`. If `TRUE`, then the system will let the student try again  following an incorrect answer.
+        - `random_answer_order`. An argument to `question()`. If `TRUE`, display the answers in a random order. 
+        - `message`. An argument to `answer`. One use for this is to give some feedback on why an answer is false. 
+        
+**Activity**: modify the question to allow retries and to give a useful feedback message that will guide the student toward a correct answer after an incorrect answer is given.
+
+-->
+
+## An R command window
+
+<!-- Comment
+Sometimes you want to include a number about the data in the narrative. It is of course possible to put in the number as plain text. But you can also do a little R calculation within the text (this is called "inline"). Sometimes data change (e.g. you find out you were reading the wrong file) and the inline calculations ensure that the  text stays up to date with the data.
+--> 
+
+In the previous section, you saw that `r sum(Bus_workers$event == "attack")` of the bus workers had a heart attack during the year of the study, and `r sum(Bus_workers$event == "none")` did not. The proportion of workers who had an attack is the number of workers who had an attack divided by the total number of workers. Use the following command box to calculate the exact proportion.
+
+<!-- A basic element of interactive tutorials is a text-editing box that can hold R commands, evaluate those commands, and display the results of the evaluation. The next R chunk contains the instructions to create a blank text-editing box. -->
+
+```{r overall_prop, exercise = TRUE, echo = FALSE}
+
+```
+
+It can be much easier to calculate such proportions with software. But there are many different sorts of proportions, and it's important to know which one you want.
+
+1. A simple proportion: How many of the workers had a heart attack?
+```{r echo = FALSE}
+statPREP::counts(~ event, data = Bus_workers, format = "proportion")
+```
+2. A joint proportion, e.g. what fraction of the workers were conductors who had a heart attack?
+    ```{r echo = FALSE}
+statPREP::counts(~ event + job, data = Bus_workers, format = "proportion")
+```
+    Notice in the above that the four numbers in the table add up to 3. That's because every one of the people in `Bus_workers` falls into one of the four categories listed in the table.  
+4. A conditional proportion, e.g. of the conductors, what fraction had a heart attack?
+    ```{r echo = FALSE}
+statPREP::counts( ~ event | job, data = Bus_workers, format = "proportion")
+```
+Keep in mind that it's also possible to ask the question the other way: of the people who had heart attacks, what fraction were conductors?
+   
+Note that rather than all four numbers adding to one, the numbers in *each column* add to one. The column represents the sub-group (e.g. "of the people who had heart attacks"). Each of the people in this sub-group either had a heart attack or not: those two numbers add up to 1.
+
+EXERCISE: Use the following command box to calculate this conditional proportion: of the people who had heart attacks, what fraction were bus drivers? You will have to replace the `..formula..` with an actual formula. Some possibilities to consider:
+
+- `~ event`
+- `~ job`
+- `~ event + job`
+- `~ job + event`
+- `~ job | event`
+- `~ event | job`
+
+
+<!-- 
+You can also pre-populate the chunk with whatever text you wish. Indeed, you can have the complete command to carry out the calculation.
+-->
+
+```{r calc_prop, exercise = TRUE, echo = FALSE}
+statPREP::counts( ..formula.. , data = Bus_workers, format = "proportion")
+```
+
+## Exercise and health
+
+The question that Morris wanted to explore was whether the incidence of heart attacks is lower in people who get mild exercise than in people who don't exercise. What's this got to do with bus drivers and conductors? Bus drivers spend almost all their work time sitting. Conductors, on the other hand, are moving around collecting tickets. On the London double-decker busses, this also means going up and down the stairs many times a day. So bus drivers are relatively sedentary compared to bus conductors.
+
+QUESTION: Figure out which kind of table will produce the two proportions that Morris wanted to compare.
+
+<!-- 
+Add in an exercise chunk to enable students to do the calculation.
+-->
+
+
+<!--
+Once you've created the exercise chunk, write a multiple-choice question about interpreting the results of the calculation. Did conductors have a lower heart attack rate than bus drivers.
+-->
+
+## Age is almost always a factor
+
+Morris was interested in whether exercise is associated with lower heart attack risk. But there's another factor that everybody knew was associated with increased risk: age. Older people are more likely to have heart attacks than younger people. 
+
+Perhaps the reason behind conductors having lower heart-attack rates is that conductors are, on average, younger than bus drivers. (NOTE IN DRAFT: Add something about age adjustment here.)
+
+The following interactive graphic uses the Morris data to fit a model of risk of heart attack versus age. By brushing (click and drag the cursor), you can choose a subset of ages for which to fit the model. (The faint line shows the model for *all* the Morris data.)
+
+<!-- Shiny apps start with one or more ordinary chunks or inline commands that defines inputs and outputs. In this chunk, we create a slider for age (with an upper and lower bound) and a graph showing risk of 
+heart attack versus age. -->
+```{r child=system.file("bus_workers_app.Rmd", package = "mdsint")}
+```
+
+## Creating a tutorial from scratch
+
+You can create a new tutorial by selecting New File/R Markdown then choose "From Template" and, when the list of templates appears, choose "Interactive Tutorial." You will be asked to provide a name for the tutorial. This will become the name of a directory that RStudio will create for your tutorial. The Rmd file you will edit will be in that directory.
+
+Some tips:
+
+- DO NOT include any spaces or punctuation characters (other than `_`) in the directory name.
+- Be active in setting the "Location" of this new directory. The default location might not be suitable.
+
+## Deploying your tutorial
+
+Presumably, you are writing a tutorial so that your students can use it. In order for students to access your tutorial from a web browser, you need to *deploy* the tutorial to a server. We'll cover how to do this in another webinar. In the meanwhile, if you have a tutorial that you want to deploy, contact Danny Kaplan (`kaplan@macalester.edu`).
+
+## Logging student activity and checking answers
+
+In a later tutorial, we'll show you how to log and score student answers and how to provide interactive corrective feedback to exercise chunks. 
+
